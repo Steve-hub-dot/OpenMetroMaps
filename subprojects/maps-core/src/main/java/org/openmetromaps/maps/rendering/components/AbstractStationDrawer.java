@@ -62,6 +62,9 @@ public abstract class AbstractStationDrawer implements StationDrawer
 	protected IPaintInfo paintSelectedStationsStrokeOutline;
 	protected IPaintInfo paintSelectedStationsFillOutline;
 
+	protected IPaintInfo paintHighlightedStationsFill;
+	protected IPaintInfo paintHighlightedStationsStroke;
+
 	protected IPaintInfo paintStationCenters;
 
 	protected float spreadFactor;
@@ -109,6 +112,14 @@ public abstract class AbstractStationDrawer implements StationDrawer
 		paintStationCenters.setJoin(Join.ROUND);
 		paintStationCenters.setStyle(PaintType.FILL);
 
+		ColorCode highlightedStationColor = new ColorCode(0xffBF406E);
+		paintHighlightedStationsFill = pf.create(highlightedStationColor);
+		paintHighlightedStationsFill.setStyle(PaintType.FILL);
+		paintHighlightedStationsStroke = pf.create(highlightedStationColor);
+		paintHighlightedStationsStroke.setCap(Cap.ROUND);
+		paintHighlightedStationsStroke.setJoin(Join.ROUND);
+		paintHighlightedStationsStroke.setStyle(PaintType.STROKE);
+
 		lineToPaintForStations = new IPaintInfo[data.getLines().size()];
 
 		final int nLines = data.getLines().size();
@@ -142,6 +153,7 @@ public abstract class AbstractStationDrawer implements StationDrawer
 		circleRadiusOutline = stationsSize / 2;
 
 		paintStationsStroke.setWidth(stationsSize / STATION_OUTLINE_INCREASE);
+		paintHighlightedStationsStroke.setWidth(stationsSize / STATION_OUTLINE_INCREASE);
 		paintStationsStrokeOutline.setWidth(stationsSize);
 		paintSelectedStationsStrokeOutline.setWidth(stationsSize);
 
@@ -155,18 +167,22 @@ public abstract class AbstractStationDrawer implements StationDrawer
 	}
 
 	protected void drawSinglePuntal(Painter g, double px, double py,
-			IPaintInfo paint, boolean selected)
+			IPaintInfo paint, boolean selected, boolean highlighted)
 	{
 		if (selected) {
 			g.setPaintInfo(paintSelectedStationsFillOutline);
 			g.drawCircle(px, py, circleRadiusOutline);
 		}
-		g.setPaintInfo(paint);
+		if (highlighted) {
+			g.setPaintInfo(paintHighlightedStationsFill);
+		}else {
+			g.setPaintInfo(paint);
+		}
 		g.drawCircle(px, py, circleRadius);
 	}
 
 	protected void drawMultiPuntal(Painter g, double px, double py,
-			boolean selected)
+			boolean selected, boolean highlighted)
 	{
 		if (selected) {
 			g.setPaintInfo(paintSelectedStationsFillOutline);
@@ -174,12 +190,16 @@ public abstract class AbstractStationDrawer implements StationDrawer
 			g.setPaintInfo(paintStationsFillOutline);
 		}
 		g.drawCircle(px, py, circleRadiusOutline);
-		g.setPaintInfo(paintStationsFill);
+		if (highlighted) {
+			g.setPaintInfo(paintHighlightedStationsFill);
+		}else{
+			g.setPaintInfo(paintStationsFill);
+		}
 		g.drawCircle(px, py, circleRadius);
 	}
 
 	protected void drawLineal(Painter g, Path path, double px, double py,
-			SegmentEndPointPaintInfo spi, boolean selected,
+			SegmentEndPointPaintInfo spi, boolean selected, boolean highlighted,
 			boolean renderCenter)
 	{
 		path.reset();
@@ -193,7 +213,11 @@ public abstract class AbstractStationDrawer implements StationDrawer
 		}
 		g.draw(path);
 
-		g.setPaintInfo(paintStationsStroke);
+		if (highlighted) {
+			g.setPaintInfo(paintHighlightedStationsStroke);
+		}else {
+			g.setPaintInfo(paintStationsStroke);
+		}
 		g.draw(path);
 
 		if (renderCenter) {

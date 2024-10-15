@@ -49,16 +49,16 @@ public class StationDrawerDot extends AbstractStationDrawer
 	}
 
 	@Override
-	public void drawStation(Painter g, Node node, Path path, boolean selected,
+	public void drawStation(Painter g, Node node, Path path, boolean selected, boolean highlighted,
 			boolean renderCenter)
 	{
 		g.setRef(node);
-		drawStationInternal(g, node, path, selected, renderCenter);
+		drawStationInternal(g, node, path, selected, highlighted, renderCenter);
 		g.setNoRef();
 	}
 
 	private void drawStationInternal(Painter g, Node node, Path path,
-			boolean selected, boolean renderCenter)
+			boolean selected, boolean highlighted, boolean renderCenter)
 	{
 		List<Stop> stops = node.station.getStops();
 		Point location = node.location;
@@ -69,9 +69,9 @@ public class StationDrawerDot extends AbstractStationDrawer
 		if (stops.size() == 1) {
 			Stop stop = stops.get(0);
 			IPaintInfo paint = lineToPaintForStations[stop.getLine().getId()];
-			drawSinglePuntal(g, px, py, paint, selected);
+			drawSinglePuntal(g, px, py, paint, selected, highlighted);
 		} else {
-			drawMultiPuntal(g, px, py, selected);
+			drawMultiPuntal(g, px, py, selected, highlighted);
 		}
 	}
 

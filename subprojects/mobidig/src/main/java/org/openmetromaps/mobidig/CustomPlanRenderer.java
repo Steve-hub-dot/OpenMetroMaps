@@ -345,8 +345,9 @@ public class CustomPlanRenderer implements ViewportListener
 			}
 
 			boolean selected = mapViewStatus.isNodeSelected(node);
+			boolean highlighted = mapViewStatus.isStationHighlighted(node.station);
 
-			stationDrawer.drawStation(g, node, path, selected,
+			stationDrawer.drawStation(g, node, path, selected, highlighted,
 					renderStationCenters);
 		}
 		tm.stop(LOG_STATIONS);

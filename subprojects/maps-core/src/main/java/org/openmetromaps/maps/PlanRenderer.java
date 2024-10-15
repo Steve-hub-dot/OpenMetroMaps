@@ -351,8 +351,9 @@ public class PlanRenderer implements ViewportListener
 			}
 
 			boolean selected = mapViewStatus.isNodeSelected(this.lineNetwork.nodes.stream().filter(n -> n.station == node.station).findFirst().get());
+			boolean highlighted = mapViewStatus.isStationHighlighted(node.station);
 
-			stationDrawer.drawStation(g, node, path, selected,
+			stationDrawer.drawStation(g, node, path, selected, highlighted,
 					renderStationCenters);
 		}
 		tm.stop(LOG_STATIONS);

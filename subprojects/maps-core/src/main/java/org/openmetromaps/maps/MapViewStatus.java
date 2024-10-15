@@ -22,16 +22,25 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.LinkedHashSet;
+import java.util.Map;
 
+import org.openmetromaps.maps.graph.Edge;
 import org.openmetromaps.maps.graph.NetworkLine;
 import org.openmetromaps.maps.graph.Node;
+import org.openmetromaps.maps.model.Station;
+import org.openmetromaps.maps.model.Stop;
 
 public class MapViewStatus
 {
 
     private List<Node> selectedNodes = new ArrayList<>();
 	private Set<NetworkLine> hiddenLines = new HashSet<>();
-	private Set<NetworkLine> selectedLines = new HashSet<>();
+	private Set<NetworkLine> selectedLines = new LinkedHashSet<>();
+	private List<Stop> highlightedPath = new ArrayList<>();
+	private List<Map.Entry<Edge, NetworkLine>> highlightedEdgeLines = new ArrayList<>();
+	private Set<Station> highlightedStations = new HashSet<>();
+
 
 	public boolean isNodeSelected(Node node)
 	{
@@ -91,6 +100,14 @@ public class MapViewStatus
 		return selectedLines.contains(line);
 	}
 
+	public boolean isEdgeLineHighlighted(Edge edge, NetworkLine line) {
+		return highlightedEdgeLines.contains(Map.entry(edge, line));
+	}
+
+	public boolean isStationHighlighted(Station station) {
+		return highlightedStations.contains(station);
+	}
+
 	public void selectLine(NetworkLine line) {
 		selectedLines.add(line);
 	}
@@ -109,5 +126,33 @@ public class MapViewStatus
 
 	public Set<NetworkLine> getSelectedLines() {
 		return Collections.unmodifiableSet(selectedLines);
+	}
+
+	public void highlightPath(List<Stop> path, List<? extends Map.Entry<Edge, NetworkLine>> edgeLines) {
+		highlightedPath.addAll(path);
+		highlightedEdgeLines.addAll(edgeLines);
+		highlightedStations.addAll(path.stream().map(Stop::getStation).toList());
+	}
+
+	public void highlightStations(List<Station> stations) {
+		highlightedStations.addAll(stations);
+	}
+
+	public void removeHighlight() {
+		highlightedPath.clear();
+		highlightedEdgeLines.clear();
+		highlightedStations.clear();
+	}
+
+	public List<Map.Entry<Edge, NetworkLine>> getHighlightedEdgeLines() {
+		return Collections.unmodifiableList(highlightedEdgeLines);
+	}
+
+	public List<Stop> getHighlightedPath() {
+		return Collections.unmodifiableList(highlightedPath);
+	}
+
+	public Set<Station> getHighlightedStations() {
+		return Collections.unmodifiableSet(highlightedStations);
 	}
 }

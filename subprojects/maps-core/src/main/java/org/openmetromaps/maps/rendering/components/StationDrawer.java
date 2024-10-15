@@ -24,7 +24,7 @@ import org.openmetromaps.maps.painting.core.geom.Path;
 public interface StationDrawer
 {
 
-	public void drawStation(Painter g, Node node, Path path, boolean selected,
+	public void drawStation(Painter g, Node node, Path path, boolean selected, boolean highlighted,
 			boolean renderCenter);
 
 	public void zoomChanged(float factor, float lineWidth);

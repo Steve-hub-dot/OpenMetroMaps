@@ -97,16 +97,16 @@ public class StationDrawerConvex extends AbstractStationDrawer
 	private List<Edge> skipped = new ArrayList<>();
 
 	@Override
-	public void drawStation(Painter g, Node node, Path path, boolean selected,
+	public void drawStation(Painter g, Node node, Path path, boolean selected, boolean highlighted,
 			boolean renderCenter)
 	{
 		g.setRef(node);
-		drawStationInternal(g, node, path, selected, renderCenter);
+		drawStationInternal(g, node, path, selected,highlighted, renderCenter);
 		g.setNoRef();
 	}
 
 	private void drawStationInternal(Painter g, Node node, Path path,
-			boolean selected, boolean renderCenter)
+			boolean selected, boolean highlighted, boolean renderCenter)
 	{
 		Point location = node.location;
 		List<Edge> nodeEdges = node.edges;
@@ -126,7 +126,7 @@ public class StationDrawerConvex extends AbstractStationDrawer
 			IPaintInfo paint = lineToPaintForStations[lineId];
 			double px = ltp.getX(location.x);
 			double py = ltp.getY(location.y);
-			drawSinglePuntal(g, px, py, paint, selected);
+			drawSinglePuntal(g, px, py, paint, selected, highlighted);
 			return;
 		}
 
@@ -161,14 +161,14 @@ public class StationDrawerConvex extends AbstractStationDrawer
 
 		// Simple stations with only one line
 		if (spis.size() == 0) {
-			drawMultiPuntal(g, px, py, selected);
+			drawMultiPuntal(g, px, py, selected, highlighted);
 			return;
 		}
 
 		// Stations with multiple lines but all on the the same one or two edges
 		if (spis.size() == 1) {
 			SegmentEndPointPaintInfo spi = spis.get(0);
-			drawLineal(g, path, px, py, spi, selected, renderCenter);
+			drawLineal(g, path, px, py, spi, selected, highlighted, renderCenter);
 			spiPool.give(spi);
 			return;
 		}
@@ -185,7 +185,7 @@ public class StationDrawerConvex extends AbstractStationDrawer
 				// > ~172 degrees
 				SegmentEndPointPaintInfo spi = spi1.nShift > spi2.nShift ? spi1
 						: spi2;
-				drawLineal(g, path, px, py, spi, selected, renderCenter);
+				drawLineal(g, path, px, py, spi, selected, highlighted, renderCenter);
 				spiPool.give(spi1);
 				spiPool.give(spi2);
 				return;
@@ -266,9 +266,17 @@ public class StationDrawerConvex extends AbstractStationDrawer
 			g.setPaintInfo(paintStationsStrokeOutline);
 		}
 		g.draw(path);
-		g.setPaintInfo(paintStationsFill);
+		if (highlighted){
+			g.setPaintInfo(paintHighlightedStationsFill);
+		}else{
+			g.setPaintInfo(paintStationsFill);
+		}
 		g.draw(path);
-		g.setPaintInfo(paintStationsStroke);
+		if (highlighted) {
+			g.setPaintInfo(paintHighlightedStationsStroke);
+		} else {
+			g.setPaintInfo(paintStationsStroke);
+		}
 		g.draw(path);
 
 		if (renderCenter) {

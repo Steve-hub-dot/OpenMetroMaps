@@ -52,16 +52,16 @@ public class StationDrawerSimple extends AbstractStationDrawer
 	}
 
 	@Override
-	public void drawStation(Painter g, Node node, Path path, boolean selected,
+	public void drawStation(Painter g, Node node, Path path, boolean selected, boolean highlighted,
 			boolean renderCenter)
 	{
 		g.setRef(node);
-		drawStationInternal(g, node, path, selected, renderCenter);
+		drawStationInternal(g, node, path, selected, highlighted, renderCenter);
 		g.setNoRef();
 	}
 
 	private void drawStationInternal(Painter g, Node node, Path path,
-			boolean selected, boolean renderCenter)
+			boolean selected, boolean highlighted, boolean renderCenter)
 	{
 		List<Stop> stops = node.station.getStops();
 		Point location = node.location;
@@ -71,7 +71,7 @@ public class StationDrawerSimple extends AbstractStationDrawer
 			IPaintInfo paint = lineToPaintForStations[stop.getLine().getId()];
 			double px = ltp.getX(location.x);
 			double py = ltp.getY(location.y);
-			drawSinglePuntal(g, px, py, paint, selected);
+			drawSinglePuntal(g, px, py, paint, selected, highlighted);
 			return;
 		}
 
@@ -114,13 +114,17 @@ public class StationDrawerSimple extends AbstractStationDrawer
 				g.setPaintInfo(paintStationsStrokeOutline);
 			}
 			g.draw(path);
-			g.setPaintInfo(paintStationsStroke);
+			if (highlighted) {
+				g.setPaintInfo(paintHighlightedStationsStroke);
+			}else {
+				g.setPaintInfo(paintStationsStroke);
+			}
 			g.draw(path);
 			if (renderCenter) {
 				renderCenter(g, px, py);
 			}
 		} else {
-			drawMultiPuntal(g, px, py, selected);
+			drawMultiPuntal(g, px, py, selected, highlighted);
 		}
 	}
 
