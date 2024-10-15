@@ -62,6 +62,7 @@
         <module>subprojects/station-model-csv-export</module>
         <module>subprojects/swing-misc</module>
         <module>subprojects/test-data</module>
+        <module>subprojects/test-maps-model-gtfs</module>
         <module>subprojects/test-maps-model-xml-desktop</module>
         <module>subprojects/test-station-model</module>
         <module>subprojects/ui-resources</module>
