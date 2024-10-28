@@ -12,7 +12,7 @@ public class MapTraversal {
 
     public static List<Station> traverseMap(ModelData model, Station src, MapTraversalLimitType limitType, int limit) {
 
-        ArrayList<Station> result = new ArrayList<>();
+        Set<Station> result = new HashSet<>();
         ArrayList<Line> validLines;
         result.add(src);
 
@@ -28,16 +28,10 @@ public class MapTraversal {
                 Map<Station, Integer> possibleTransfers = new HashMap<>();
 
                 validLines = findValidLines(model, src);
-                
+
                 for (Line line : validLines) {
-                    srcStopId = -1; 
-                    for(Stop stop : line.getStops()) {
-                        if(stop.getStation().equals(src)) {
-                            srcStopId = line.getStops().indexOf(stop);
-                            break;
-                        }
-                    }
-                    addNearbyStops(model, srcStopId, limit, line, result, possibleTransfers);
+                    srcStopId = getSrcId(line, src);
+                    if(srcStopId != -1) addNearbyStops(model, srcStopId, limit, line, result, possibleTransfers);
                 }
                 break;
 
@@ -47,27 +41,25 @@ public class MapTraversal {
             default:
                 break;
         }
-        return result;
+        return new ArrayList<>(result);
     }
     
     static ArrayList<Line> findValidLines(ModelData model, Station src) {
         ArrayList<Line> validLines = new ArrayList<>();
 
-        for (Line iterable_element : model.lines) {
-            for (Stop stop : iterable_element.getStops()) {
-                if(stop.getStation().equals(src)) {
-                    validLines.add(iterable_element);
-                }
+        for (Line line : model.lines) {
+            if(line.getStops().stream().anyMatch(stop -> stop.getStation().equals(src))) {
+                validLines.add(line);
             }
         }
         return validLines;
     }
 
-    static void addNearbyStops(ModelData model, int srcStopId, int limit, Line line, ArrayList<Station> result, Map<Station, Integer> possibleTransfers) {
+    static void addNearbyStops(ModelData model, int srcStopId, int limit, Line line, Set<Station> result, Map<Station, Integer> possibleTransfers) {
         if(limit == 0) return;
 
-        addNearbyStopsToTheRight(model, srcStopId, limit, line, result, possibleTransfers);
-        addNearbyStopsToTheLeft(model, srcStopId, limit, line, result, possibleTransfers);
+        addNearbyStopsToTheRight(srcStopId, limit, line, result, possibleTransfers);
+        addNearbyStopsToTheLeft(srcStopId, limit, line, result, possibleTransfers);
 
         //checking for transfers
         for(Line otherLine : model.lines) {
@@ -81,7 +73,7 @@ public class MapTraversal {
         }
     }
 
-    static void addNearbyStopsToTheLeft(ModelData model, int srcStopId, int limit, Line line, ArrayList<Station> result, Map<Station, Integer> possibleTransfers) {
+    static void addNearbyStopsToTheLeft(int srcStopId, int limit, Line line, Set<Station> result, Map<Station, Integer> possibleTransfers) {
         for(int i = srcStopId -1; i >= Math.max(srcStopId - limit, 0); i--) {
             Stop current = line.getStops().get(i);
             if(!result.contains(current.getStation())) {
@@ -92,7 +84,7 @@ public class MapTraversal {
             }
         }
     }
-    static void addNearbyStopsToTheRight(ModelData model, int srcStopId, int limit, Line line, ArrayList<Station> result, Map<Station, Integer> possibleTransfers) {
+    static void addNearbyStopsToTheRight(int srcStopId, int limit, Line line, Set<Station> result, Map<Station, Integer> possibleTransfers) {
         for(int i = srcStopId + 1; i < Math.min(srcStopId + limit, line.getStops().size()); i++) {
             Stop current = line.getStops().get(i);
             if(!result.contains(current.getStation())) {
@@ -104,5 +96,14 @@ public class MapTraversal {
         }
     }
 
-
+    static int getSrcId(Line line, Station src) {
+        int i = -1;
+        for(Stop stop : line.getStops()) {
+            if(stop.getStation().equals(src)) {
+                i = line.getStops().indexOf(stop);
+                break;
+            }
+        }
+        return i;
+    }
 }
