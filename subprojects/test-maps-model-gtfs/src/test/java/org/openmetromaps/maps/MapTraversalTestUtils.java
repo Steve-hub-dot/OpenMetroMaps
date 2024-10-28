@@ -18,11 +18,11 @@ import java.util.stream.IntStream;
 
 public class MapTraversalTestUtils {
     static class Operation {
-        MapTraversal.MapTraversalLimitType limitType;
+        String limitType;
         int limit;
         Station sourceStation;
 
-        Operation(MapTraversal.MapTraversalLimitType limitType, int limit, Station sourceStation) {
+        Operation(String limitType, int limit, Station sourceStation) {
             this.limitType = limitType; 
             this.limit = limit;
             this.sourceStation = sourceStation;
@@ -40,10 +40,10 @@ public class MapTraversalTestUtils {
         if (operation.length != 3) {
             throw new IllegalArgumentException(operationPath + " - act.txt invalid format: Invaid number of parameters. act.txt must contain 3 parameters separated by a \";\".");
         }
-        MapTraversal.MapTraversalLimitType limitType = switch (operation[0].toUpperCase()) {
-            case "TRANSFER_LIMIT" -> MapTraversal.MapTraversalLimitType.TRANSFER_LIMIT;
-            case "STOP_LIMIT" -> MapTraversal.MapTraversalLimitType.STOP_LIMIT;
-            case "TIME_LIMIT" -> MapTraversal.MapTraversalLimitType.TIME_LIMIT;
+        String limitType = switch (operation[0].toUpperCase()) {
+            case "TRANSFER_LIMIT" -> "TRANSFER_LIMIT";
+            case "STOP_LIMIT" -> "STOP_LIMIT";
+            case "TIME_LIMIT" -> "TIME_LIMIT";
             default -> throw new IllegalArgumentException(operationPath + " - Invalid limit type: " + operation[0]);
         };
 
