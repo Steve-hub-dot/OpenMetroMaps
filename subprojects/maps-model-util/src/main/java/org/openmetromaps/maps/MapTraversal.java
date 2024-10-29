@@ -2,10 +2,8 @@ package org.openmetromaps.maps;
 
 import org.openmetromaps.maps.model.*;
 
-import de.topobyte.lightgeom.lina.Vector2;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class MapTraversal {
     public enum MapTraversalLimitType {
@@ -20,7 +18,8 @@ public class MapTraversal {
 
         switch (limitType) {
             case TRANSFER_LIMIT:
-                
+                //addNearbyStopsLimitTransfer(src, limit, adjacentMap, visited, result, null);
+                result = addNearbyStopsLimitTransfer(src, limit, adjacentMap);
                 break;
             
             case STOP_LIMIT:
@@ -120,6 +119,7 @@ public class MapTraversal {
 
         return (int) Math.ceil((((distance / 40) * 60) + 1));
     }
+
     static void addNearbyStopsLimitStop(Station src, int limit, Map<Station, Set<AdjacentStationInfo>> adjacencyMap, Set<Station> visited, List<Station> result) {
         visited.add(src);
 
@@ -143,7 +143,125 @@ public class MapTraversal {
 
             addNearbyStopsLimitStop(adjStat, limit-1, adjacencyMap, visited, result);
         }
-        return;
     }
 
+    /*static void addNearbyStopsLimitTransfer(Station src, int limit, Map<Station, Set<AdjacentStationInfo>> adjacencyMap, Set<Station> visited, List<Station> result, Set<Line> currentLines) {
+        visited.add(src);
+
+        if(!result.contains(src)){
+            result.add(src);
+        }
+
+        if(currentLines == null) {
+            currentLines = new HashSet<>();
+            for(Stop stop : src.getStops()) {
+                currentLines.add(stop.getLine());
+            }
+        }
+
+        Set<AdjacentStationInfo> adjacentStations = adjacencyMap.getOrDefault(src, Collections.emptySet());
+
+        for (AdjacentStationInfo adjacentStationInfo : adjacentStations) {
+            Station adjStation = adjacentStationInfo.station;
+            Line adjLine = adjacentStationInfo.line;
+
+            if(visited.contains(adjStation)) {
+                continue;
+            }
+
+            boolean isTransfer = currentLines != null && !currentLines.contains(adjLine);
+            int remainingTransfers = isTransfer ? limit -1 : limit;
+
+            if(remainingTransfers < 0) {
+                continue;
+            }
+
+            Set<Line> nextLines = new HashSet<>();
+            if(isTransfer) {
+                nextLines.add(adjLine);
+            } else {
+                nextLines.addAll(currentLines);
+            }
+
+            addNearbyStopsLimitTransfer(adjStation, remainingTransfers, adjacencyMap, visited, result, nextLines);
+        }
+        visited.remove(src);
+    }*/
+
+    static List<Station> addNearbyStopsLimitTransfer(Station src, int limit, Map<Station, Set<AdjacentStationInfo>> adjacencyMap) {
+        Set<Station> result = new HashSet<>();
+        Queue<State> queue = new LinkedList<>();
+        Map<Station, Map<Set<Line>, Integer>> visitedStates = new HashMap<>();
+        Set<Line> startingLines = new HashSet<>();
+        for (Stop stop : src.getStops()) {
+            startingLines.add(stop.getLine());
+        }
+
+        State initialState = new State(src, limit, startingLines);
+        queue.add(initialState);
+
+        while (!queue.isEmpty()) {
+            State currentState = queue.poll();
+            Station currentStation = currentState.station;
+            int remainingTransfers = currentState.remainingTransfers;
+            Set<Line> currentLines = currentState.currentLines;
+
+            if(result.add(currentStation)) {
+                Set<AdjacentStationInfo> adjacentStationInfos = adjacencyMap.getOrDefault(currentStation, Collections.emptySet());
+
+                for(AdjacentStationInfo adjacentStationInfo : adjacentStationInfos) {
+                    Station adjStation = adjacentStationInfo.station;
+                    Line adjLine = adjacentStationInfo.line;
+
+                    boolean isTransfer = !currentLines.contains((adjLine));
+                    int newRemainingTransfers = isTransfer? remainingTransfers - 1 : remainingTransfers;
+
+                    if (newRemainingTransfers < 0) {
+                        continue;
+                    }
+
+                    Set<Line> nextlLines = new HashSet<>();
+                    if (isTransfer) {
+                        nextlLines.add(adjLine);
+                    } else {
+                        nextlLines.addAll(currentLines);
+                    }
+
+                    if(shouldVisit(adjStation, nextlLines, newRemainingTransfers, visitedStates)) {
+                        queue.add(new State(adjStation, newRemainingTransfers, nextlLines));
+                    }
+                }
+            }
+        }
+        return new ArrayList<>(result);
+    }
+
+    static class State{
+        Station station;
+        int remainingTransfers;
+        Set<Line> currentLines;
+
+        State(Station station, int remainingTransfers, Set<Line> currentLines) {
+            this.station = station;
+            this.remainingTransfers = remainingTransfers;
+            this.currentLines = currentLines;
+        }
+    }
+
+    static boolean shouldVisit(Station station, Set<Line> lines, int remainingTransfers, Map<Station, Map<Set<Line>, Integer>> visitedStates) {
+        Map<Set<Line>, Integer> stationStates = visitedStates.computeIfAbsent(station, k-> new HashMap<>());
+
+        for(Map.Entry<Set<Line>, Integer> entry : stationStates.entrySet()) {
+            Set<Line> visitedLines = entry.getKey();
+            int transfersLeft = entry.getValue();
+
+            
+        if(lines.containsAll(visitedLines) && remainingTransfers <= transfersLeft) {
+            return false;
+        }
+        }
+
+        stationStates.put(new HashSet<>(lines), remainingTransfers);
+        return true;
+    }
 }
