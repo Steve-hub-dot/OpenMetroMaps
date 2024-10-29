@@ -3,7 +3,7 @@ package org.openmetromaps.maps;
 import org.openmetromaps.maps.model.*;
 
 import java.util.*;
-import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class MapTraversal {
     public enum MapTraversalLimitType {
@@ -11,9 +11,9 @@ public class MapTraversal {
     }
 
     public static List<Station> traverseMap(ModelData model, Station src, MapTraversalLimitType limitType, int limit) {
-
         Set<Station> result = new HashSet<>();
-        ArrayList<Line> validLines;
+        ArrayList<Line> validLines;        
+        Map<Line, Integer> possibleLines = new ConcurrentHashMap<>();
         result.add(src);
 
         
@@ -31,7 +31,7 @@ public class MapTraversal {
 
                 for (Line line : validLines) {
                     srcStopId = getSrcId(line, src);
-                    if(srcStopId != -1) addNearbyStops(model, srcStopId, limit, line, result, possibleTransfers);
+                    if(srcStopId != -1) addNearbyStops(model, srcStopId, limit, line, result, possibleTransfers, possibleLines);
                 }
                 break;
 
@@ -55,26 +55,33 @@ public class MapTraversal {
         return validLines;
     }
 
-    static void addNearbyStops(ModelData model, int srcStopId, int limit, Line line, Set<Station> result, Map<Station, Integer> possibleTransfers) {
+    static void addNearbyStops(ModelData model, int srcStopId, int limit, Line line, Set<Station> result, Map<Station, Integer> possibleTransfers, Map<Line, Integer> possibleLines) {
         if(limit == 0) return;
+
 
         addNearbyStopsToTheRight(srcStopId, limit, line, result, possibleTransfers);
         addNearbyStopsToTheLeft(srcStopId, limit, line, result, possibleTransfers);
 
         //checking for transfers
         for(Line otherLine : model.lines) {
-            if(otherLine != line) {
+            if(!otherLine.equals(line) && !possibleLines.containsKey(otherLine)) {
                 for( Stop stop : otherLine.getStops()) {
                     if(possibleTransfers.containsKey(stop.getStation())) {
-                        addNearbyStops(model, srcStopId, limit-1, otherLine, result, possibleTransfers);
+                        srcStopId = getSrcId(otherLine, stop.getStation());
+                        if(srcStopId != -1 || limit > 1)
+                            possibleLines.put(otherLine, srcStopId);
                     }
                 }
             }
         }
+
+        for( Map.Entry<Line, Integer> a : possibleLines.entrySet()) {
+            addNearbyStops(model, a.getValue().intValue(), limit-1, a.getKey(), result, possibleTransfers, possibleLines);
+        }
     }
 
     static void addNearbyStopsToTheLeft(int srcStopId, int limit, Line line, Set<Station> result, Map<Station, Integer> possibleTransfers) {
-        for(int i = srcStopId -1; i >= Math.max(srcStopId - limit, 0); i--) {
+        for(int i = srcStopId; i >= Math.max(srcStopId - limit +1, 0); i--) {
             Stop current = line.getStops().get(i);
             if(!result.contains(current.getStation())) {
                 result.add(current.getStation());
@@ -84,13 +91,14 @@ public class MapTraversal {
             }
         }
     }
+
     static void addNearbyStopsToTheRight(int srcStopId, int limit, Line line, Set<Station> result, Map<Station, Integer> possibleTransfers) {
-        for(int i = srcStopId + 1; i < Math.min(srcStopId + limit, line.getStops().size()); i++) {
+        for(int i = srcStopId; i <= Math.min(srcStopId + limit, line.getStops().size()-1); i++) {
             Stop current = line.getStops().get(i);
             if(!result.contains(current.getStation())) {
                 result.add(current.getStation());
                 if(!possibleTransfers.containsKey(current.getStation())) {
-                    possibleTransfers.put(current.getStation(), limit - (i - srcStopId));
+                    possibleTransfers.put(current.getStation(), limit - Math.abs((i - srcStopId)));
                 }
             }
         }
