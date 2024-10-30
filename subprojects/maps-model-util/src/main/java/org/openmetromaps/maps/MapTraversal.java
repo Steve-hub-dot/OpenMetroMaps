@@ -4,6 +4,7 @@ import org.openmetromaps.maps.model.*;
 
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class MapTraversal {
     public enum MapTraversalLimitType {
@@ -18,15 +19,14 @@ public class MapTraversal {
 
         switch (limitType) {
             case TRANSFER_LIMIT:
-                //addNearbyStopsLimitTransfer(src, limit, adjacentMap, visited, result, null);
-                result = addNearbyStopsLimitTransfer(src, limit, adjacentMap);
+                result = reachableStopsTransfer(src, limit, adjacentMap);
                 break;
             
             case STOP_LIMIT:
-                addNearbyStopsLimitStop(src, limit, adjacentMap, visited, result);
+                addingStopsWithStopsLimit(src, limit, adjacentMap, visited, result);
                 break;
             case TIME_LIMIT:
-                addNearbyStopsLimitTime(src, limit, adjacentMap, visited, result, 0);
+                addStopsTime(src, limit, adjacentMap, visited, result, 0);
                 break;
 
             default:
@@ -70,7 +70,7 @@ public class MapTraversal {
         return adjacencyMap;
     }
 
-    static void addNearbyStopsLimitTime(Station src, int limit, Map<Station, Set<AdjacentStationInfo>> adjacencyMap, Set<Station> visited, List<Station> result, int timeSpent) {
+    static void addStopsTime(Station src, int limit, Map<Station, Set<AdjacentStationInfo>> adjacencyMap, Set<Station> visited, List<Station> result, int timeSpent) {
         visited.add(src);
 
         if(!result.contains(src)) {
@@ -82,32 +82,26 @@ public class MapTraversal {
         for(AdjacentStationInfo adjInf : adjacentStations) {
             Station adjStation = adjInf.station;
 
-            if(visited.contains(adjStation)) {
-                continue;
+            if(!visited.contains(adjStation)) {
+                int traveltime = traveltime(src, adjStation);
+                int totalTime = timeSpent + traveltime;
+
+                if(totalTime <= limit) {
+                    addStopsTime(adjStation, limit, adjacencyMap, visited, result, totalTime);
+                }
             }
-
-            int travelTime = calculateTraverTime(src, adjStation);
-
-            int totalTime = timeSpent + travelTime;
-
-            if(totalTime > limit) {
-                continue;
-            }
-            
-            addNearbyStopsLimitTime(adjStation, limit, adjacencyMap, visited, result, totalTime);
 
             visited.remove(src);
         }
 
     }
 
-    static int calculateTraverTime(Station src, Station dest) {
+    static int traveltime(Station src, Station dest) {
         Coordinate coordFrom = src.getLocation();
         Coordinate coordTo = dest.getLocation();
 
         double srcLat = coordFrom.getLatitude();
         double srcLong = coordFrom.getLongitude();
-
         double destLat = coordTo.getLatitude();
         double destLong = coordTo.getLongitude();
 
@@ -120,7 +114,7 @@ public class MapTraversal {
         return (int) Math.ceil((((distance / 40) * 60) + 1));
     }
 
-    static void addNearbyStopsLimitStop(Station src, int limit, Map<Station, Set<AdjacentStationInfo>> adjacencyMap, Set<Station> visited, List<Station> result) {
+    static void addingStopsWithStopsLimit(Station src, int limit, Map<Station, Set<AdjacentStationInfo>> adjacencyMap, Set<Station> visited, List<Station> result) {
         visited.add(src);
 
         if(!result.contains(src)) {
@@ -141,64 +135,19 @@ public class MapTraversal {
                 continue;
             }
 
-            addNearbyStopsLimitStop(adjStat, limit-1, adjacencyMap, visited, result);
+            addingStopsWithStopsLimit(adjStat, limit-1, adjacencyMap, visited, result);
         }
     }
 
-    /*static void addNearbyStopsLimitTransfer(Station src, int limit, Map<Station, Set<AdjacentStationInfo>> adjacencyMap, Set<Station> visited, List<Station> result, Set<Line> currentLines) {
-        visited.add(src);
-
-        if(!result.contains(src)){
-            result.add(src);
-        }
-
-        if(currentLines == null) {
-            currentLines = new HashSet<>();
-            for(Stop stop : src.getStops()) {
-                currentLines.add(stop.getLine());
-            }
-        }
-
-        Set<AdjacentStationInfo> adjacentStations = adjacencyMap.getOrDefault(src, Collections.emptySet());
-
-        for (AdjacentStationInfo adjacentStationInfo : adjacentStations) {
-            Station adjStation = adjacentStationInfo.station;
-            Line adjLine = adjacentStationInfo.line;
-
-            if(visited.contains(adjStation)) {
-                continue;
-            }
-
-            boolean isTransfer = currentLines != null && !currentLines.contains(adjLine);
-            int remainingTransfers = isTransfer ? limit -1 : limit;
-
-            if(remainingTransfers < 0) {
-                continue;
-            }
-
-            Set<Line> nextLines = new HashSet<>();
-            if(isTransfer) {
-                nextLines.add(adjLine);
-            } else {
-                nextLines.addAll(currentLines);
-            }
-
-            addNearbyStopsLimitTransfer(adjStation, remainingTransfers, adjacencyMap, visited, result, nextLines);
-        }
-        visited.remove(src);
-    }*/
-
-    static List<Station> addNearbyStopsLimitTransfer(Station src, int limit, Map<Station, Set<AdjacentStationInfo>> adjacencyMap) {
+    static List<Station> reachableStopsTransfer(Station src, int limit, Map<Station, Set<AdjacentStationInfo>> adjacencyMap) {
         Set<Station> result = new HashSet<>();
         Queue<State> queue = new LinkedList<>();
-        Map<Station, Map<Set<Line>, Integer>> visitedStates = new HashMap<>();
-        Set<Line> startingLines = new HashSet<>();
-        for (Stop stop : src.getStops()) {
-            startingLines.add(stop.getLine());
-        }
+        Map<Station, Integer> transfers = new HashMap<>();
+        Set<Line> startingLines = src.getStops().stream().map(Stop::getLine).collect(Collectors.toSet());
+        startingLines.addAll(src.getStops().stream().map(Stop::getLine).collect(Collectors.toSet()));
 
-        State initialState = new State(src, limit, startingLines);
-        queue.add(initialState);
+        queue.add(new State(src, limit, startingLines));
+        transfers.put(src, limit);
 
         while (!queue.isEmpty()) {
             State currentState = queue.poll();
@@ -206,32 +155,28 @@ public class MapTraversal {
             int remainingTransfers = currentState.remainingTransfers;
             Set<Line> currentLines = currentState.currentLines;
 
-            if(result.add(currentStation)) {
-                Set<AdjacentStationInfo> adjacentStationInfos = adjacencyMap.getOrDefault(currentStation, Collections.emptySet());
+            result.add(currentStation);
+            Set<AdjacentStationInfo> adjacentStations = adjacencyMap.getOrDefault(currentStation, Collections.emptySet());
 
-                for(AdjacentStationInfo adjacentStationInfo : adjacentStationInfos) {
-                    Station adjStation = adjacentStationInfo.station;
-                    Line adjLine = adjacentStationInfo.line;
+            for(AdjacentStationInfo info : adjacentStations) {
+                Station adjStation = info.station;
+                Line adjLine = info.line;
 
-                    boolean isTransfer = !currentLines.contains((adjLine));
-                    int newRemainingTransfers = isTransfer? remainingTransfers - 1 : remainingTransfers;
+                boolean isTransfer = !currentLines.contains(adjLine);
+                int newRemainingTransfers = isTransfer? remainingTransfers -1 : remainingTransfers;
 
-                    if (newRemainingTransfers < 0) {
-                        continue;
-                    }
+                Integer pastTransfers = transfers.get(adjStation);
 
-                    Set<Line> nextlLines = new HashSet<>();
-                    if (isTransfer) {
-                        nextlLines.add(adjLine);
-                    } else {
-                        nextlLines.addAll(currentLines);
-                    }
+                if(newRemainingTransfers >= 0 && (pastTransfers == null || pastTransfers < newRemainingTransfers)) {
+                    Set<Line> nexLines = isTransfer ? Collections.singleton(adjLine) : currentLines;
 
-                    if(shouldVisit(adjStation, nextlLines, newRemainingTransfers, visitedStates)) {
-                        queue.add(new State(adjStation, newRemainingTransfers, nextlLines));
-                    }
+                    transfers.put(adjStation, newRemainingTransfers);
+                    queue.add(new State(adjStation, newRemainingTransfers, nexLines));
                 }
+
             }
+            
+            
         }
         return new ArrayList<>(result);
     }
