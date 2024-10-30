@@ -7,6 +7,11 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class MapTraversal {
+    private MapTraversal() {}
+
+    public static int calculateExpectedRevenue(ModelData data) {
+        throw new RuntimeException("Not implemented");
+    }
     public enum MapTraversalLimitType {
         TRANSFER_LIMIT, STOP_LIMIT, TIME_LIMIT
     }
