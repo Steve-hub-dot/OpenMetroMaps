@@ -1,9 +1,11 @@
 package org.openmetromaps.maps;
 
+import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.openmetromaps.maps.model.ModelData;
+import org.openmetromaps.maps.model.Station;
 
 import java.io.File;
 import java.io.IOException;
@@ -74,9 +76,13 @@ public class MapTraversalTest {
             throw new IllegalArgumentException(path + " - Failed to import gtfs file.", e);
         }
 
-        parseOperations(operationPath, inputModel);
+        MapTraversalTestUtils.Operation operation = parseOperations(operationPath, inputModel);
+        Set<String> expectedStationNames = parseExpectedStationNames(expectedPath, inputModel);
 
-        parseExpectedStationNames(expectedPath, inputModel);
+        List<Station> outputStations = MapTraversal.traverseMap(inputModel, operation.sourceStation, operation.limitType, operation.limit);
+        Set<String> outputStationNames = new HashSet<>(outputStations.stream().map(Station::getName).toList());
+
+        Assert.assertEquals(expectedStationNames, outputStationNames);
     }
 
 }
