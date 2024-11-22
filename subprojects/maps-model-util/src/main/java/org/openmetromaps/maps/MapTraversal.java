@@ -1,9 +1,6 @@
 package org.openmetromaps.maps;
 
 import org.openmetromaps.maps.model.*;
-
-import com.google.common.collect.Maps;
-
 import java.util.*;
 import java.util.stream.Collectors;
 
